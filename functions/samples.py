@@ -10,3 +10,5 @@ def get_samples(req: func.HttpRequest) -> func.HttpResponse:
     if ret:
         return func.HttpResponse(body=str(ret), status_code=200)
     return func.HttpResponse('Sample not found', status_code=404)
+
+# Test github
