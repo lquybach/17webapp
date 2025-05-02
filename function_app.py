@@ -2,6 +2,8 @@ import azure.functions as func
 from functions.requests import post_request, get_requests, get_requests_by_user, update_request_status
 from functions.samples import get_samples
 from function.shipping_address_service import get_shipping_addresses
+from functions.login import login
+
 
 
 
@@ -44,3 +46,9 @@ def _get_shipping_addresses(req: func.HttpRequest) -> func.HttpResponse:
 @app.function_name(name="UpdateRequestStatus")
 def _update_request_status(req: func.HttpRequest) -> func.HttpResponse:
     return update_request_status(req)
+
+# 既存のエンドポイント定義の前に、ログインを追加
+@app.route(route="login", methods=[func.HttpMethod.POST])
+@app.function_name(name="Login")
+def _login(req: func.HttpRequest) -> func.HttpResponse:
+    return login(req)
