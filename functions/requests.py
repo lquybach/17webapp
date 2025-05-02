@@ -1,5 +1,5 @@
 import azure.functions as func
-from services.request_services import post_record, get_all
+from services.request_services import post_record, get_all, get_by_user_id, change_request_status
 import logging
 
 
@@ -18,7 +18,6 @@ def get_requests(req: func.HttpRequest) -> func.HttpResponse:
 
 #Yasuharu編集分
 
-from services.request_services import post_record, get_all, get_by_user_id
 
 def get_requests_by_user(req: func.HttpRequest) -> func.HttpResponse:
     user_id = req.params.get('user_id')  # クエリパラメータから user_id を受け取る
@@ -31,3 +30,32 @@ def get_requests_by_user(req: func.HttpRequest) -> func.HttpResponse:
     return func.HttpResponse('Request not found', status_code=404)
 
 #Yasuharu 編集範囲
+
+
+def update_request_status(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info("Processing PUT /requests/{id}/status")
+
+    # 1) ルートパラメータから request_id を取得
+    request_id = req.route_params.get("id")
+    if not request_id:
+        return func.HttpResponse("Missing request id in route", status_code=400)
+
+    # 2) ボディから新しい status_no をパース
+    try:
+        data = req.get_json()
+    except ValueError:
+        return func.HttpResponse("Invalid JSON", status_code=400)
+
+    if "status_no" not in data:
+        return func.HttpResponse("Missing field: status_no", status_code=400)
+
+    # 3) サービス層を呼び出して DB 更新
+    try:
+        change_request_status(
+            request_id=int(request_id),
+            status_no=int(data["status_no"])
+        )
+        return func.HttpResponse(status_code=200)
+    except Exception as e:
+        logging.error(f"Error in update_request_status: {e}")
+        return func.HttpResponse(str(e), status_code=500)

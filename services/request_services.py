@@ -78,6 +78,26 @@ def get_by_user_id(user_id):
 
 
 
+def change_request_status(request_id: int, status_no: int) -> None:
+    """
+    指定された request_id の status_no を更新し、
+    updated_at を CURRENT_TIMESTAMP で上書きします。
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE requests
+                   SET status_no   = %s,
+                       updated_at  = CURRENT_TIMESTAMP
+                 WHERE id = %s
+                """,
+                (status_no, request_id)
+            )
+            conn.commit()
+    finally:
+        conn.close()
 
 
 '''
