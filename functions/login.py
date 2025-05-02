@@ -34,7 +34,8 @@ def login(req: func.HttpRequest) -> func.HttpResponse:
     resp = {
         "success": True,
         "user_id": user['user_id'],
-        "role_id": user['role_id']
+        "role_id": user['role_id'],
+        "user_name": user['user_name']
     }
     return func.HttpResponse(
         json.dumps(resp, ensure_ascii=False),
