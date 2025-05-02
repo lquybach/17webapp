@@ -1,5 +1,6 @@
 import azure.functions as func
 from functions.requests import post_request, get_requests
+from functions.samples import get_samples
 
 
 
@@ -23,3 +24,9 @@ def _get_requests(req: func.HttpRequest) -> func.HttpResponse:
 # @app.function_name(name='GetRequests')
 # def _get_requests(req: func.HttpRequest) -> func.HttpResponse:
 #     return get_requests(req)
+
+# Samples endpoints
+@app.route(route='samples', methods=['GET'])
+@app.function_name(name='GetSamples')
+def _get_samples(req: func.HttpRequest) -> func.HttpResponse:
+    return get_samples(req)
