@@ -20,14 +20,26 @@ def get_requests(req: func.HttpRequest) -> func.HttpResponse:
 
 
 def get_requests_by_user(req: func.HttpRequest) -> func.HttpResponse:
-    user_id = req.params.get('user_id')  # クエリパラメータから user_id を受け取る
+    logging.info("Processing GET /get_requests_by_user")
+    
+    # 1) クエリパラメータ user_id を取得
+    user_id = req.params.get('user_id')
     if not user_id:
         return func.HttpResponse("Missing user_id", status_code=400)
 
-    ret = get_by_user_id(user_id)
-    if ret:
-        return func.HttpResponse(body=str(ret), status_code=200)
-    return func.HttpResponse('Request not found', status_code=404)
+    try:
+        # 2) サービス層から取得
+        ret = get_by_user_id(int(user_id))
+
+        # 3) JSON 化して返却
+        return func.HttpResponse(
+            body=json.dumps(ret, ensure_ascii=False, default=str),
+            status_code=200,
+            mimetype="application/json"
+        )
+    except Exception as e:
+        logging.error(f"Error in get_requests_by_user: {e}")
+        return func.HttpResponse(str(e), status_code=500)
 
 #Yasuharu 編集範囲
 
