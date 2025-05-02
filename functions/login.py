@@ -1,11 +1,15 @@
-# functions/login.py
-
 import azure.functions as func
-import json, logging
+import json
+import logging
 from services.login_service import get_user_by_name, verify_password
-from shared.auth import generate_token
+
 
 def login(req: func.HttpRequest) -> func.HttpResponse:
+    """
+    POST /login
+    Body JSON: { "user_name": str, "password": str }
+    成功時に user_id, role_id を返却。
+    """
     logging.info("Processing POST /login")
     try:
         data = req.get_json()
@@ -13,22 +17,18 @@ def login(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse("Invalid JSON", status_code=400)
 
     user_name = data.get("user_name")
-    password  = data.get("password")
+    password = data.get("password")
     if not user_name or not password:
         return func.HttpResponse("Missing user_name or password", status_code=400)
 
     user = get_user_by_name(user_name)
-    # stored_password に平文が入り、verify_password でそのまま比較
-    if not user or not verify_password(password, user["password"]):
+    if not user or not verify_password(password, user['password']):
         return func.HttpResponse("Unauthorized", status_code=401)
 
-    token = generate_token({"sub": user["user_id"], "role": user["role_id"]})
+    # ログイン成功レスポンス
+    resp = { "success": True, "user_id": user['user_id'], "role_id": user['role_id'] }
     return func.HttpResponse(
-        json.dumps({
-            "token":   token,
-            "user_id": user["user_id"],
-            "role_id": user["role_id"]
-        }, ensure_ascii=False),
+        json.dumps(resp, ensure_ascii=False),
         status_code=200,
         mimetype="application/json"
     )
