@@ -66,13 +66,38 @@ def post_record(data):
         conn.close()
 
 #Yasuharu編集範囲
-def get_by_user_id(user_id):
+def get_by_user_id(user_id: int) -> list:
+    """
+    user_id に紐づくリクエストの詳細を
+    JOIN クエリで取得して返します。
+    """
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM requests WHERE user_id = %s', (user_id,))
-    rows = cursor.fetchall()
-    conn.close()
-    return rows
+    try:
+        with conn.cursor() as cursor:
+            sql = """
+                SELECT
+                  r.id,
+                  s.sample_name,
+                  r.quantity,
+                  sa.address_name,
+                  r.preferred_date,
+                  r.comment,
+                  st.status_name,
+                  r.created_at
+                FROM requests r
+                JOIN samples s
+                  ON r.sample_id = s.sample_id
+                JOIN shipping_addresses sa
+                  ON r.shipping_address_code = sa.shipping_address_code
+                JOIN status_master st
+                  ON r.status_no = st.status_no
+                WHERE r.user_id = %s
+                ORDER BY r.created_at DESC
+            """
+            cursor.execute(sql, (user_id,))
+            return cursor.fetchall()
+    finally:
+        conn.close()
 
 #Yasuharu 編集範囲
 
