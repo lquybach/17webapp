@@ -65,6 +65,16 @@ def post_record(data):
     finally:
         conn.close()
 
+#Yasuharu編集範囲
+def get_by_user_id(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM requests WHERE user_id = %s', (user_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+#Yasuharu 編集範囲
 
 
 
