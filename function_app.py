@@ -1,7 +1,7 @@
 import azure.functions as func
 from functions.requests import post_request, get_requests
 from functions.samples import get_samples
-
+from function.shipping_address_service import get_shipping_addresses
 
 
 
@@ -30,3 +30,9 @@ def _get_requests(req: func.HttpRequest) -> func.HttpResponse:
 @app.function_name(name='GetSamples')
 def _get_samples(req: func.HttpRequest) -> func.HttpResponse:
     return get_samples(req)
+
+# Shipping Addresses endpoint
+@app.route(route='shipping_addresses', methods=['GET'])
+@app.function_name(name='GetShippingAddresses')
+def _get_shipping_addresses(req: func.HttpRequest) -> func.HttpResponse:
+    return get_shipping_addresses(req)
