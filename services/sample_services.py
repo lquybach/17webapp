@@ -20,4 +20,3 @@ def resolve_sample_id(cursor, name):
     # if not ret:
     #     raise ValueError('サンプルが見つかりません')
     return ret['sample_id']
-#yasudesu
