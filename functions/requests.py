@@ -1,7 +1,7 @@
 import azure.functions as func
-import json
 from services.request_services import post_record, get_all, get_by_user_id, change_request_status
 import logging
+import json
 
 
 def post_request(req: func.HttpRequest) -> func.HttpResponse:

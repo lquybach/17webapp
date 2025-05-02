@@ -1,7 +1,7 @@
 import azure.functions as func
 from functions.requests import post_request, get_requests, get_requests_by_user, update_request_status
 from functions.samples import get_samples
-from function.shipping_address_service import get_shipping_addresses
+from functions.shipping_address import get_shipping_addresses
 from functions.login import login
 
 

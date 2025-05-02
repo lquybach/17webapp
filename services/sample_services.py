@@ -20,28 +20,45 @@ def get_all():
         conn.close()
 
 
+def create_sample(name: str, stock: int = 0) -> int:
+    """
+    samples テーブルに新しいレコードを追加し、
+    作成された sample_id を返す。
+
+    :param name: サンプル名
+    :param stock: 初期在庫量（デフォルト 0）
+    :return: 新規作成レコードの sample_id
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO samples (sample_name, sample_stock) VALUES (%s, %s);",
+                (name, stock)
+            )
+            conn.commit()
+            return cursor.lastrowid
+    finally:
+        conn.close()
 
 
-# def create_sample(name: str, stock: int = 0) -> int:
-#     """
-#     samples テーブルに新しいレコードを追加し、
-#     作成された sample_id を返す。
+def update_stock(sample_id: int, new_stock: int) -> None:
+    """
+    指定された sample_id の在庫数を更新する。
 
-#     :param name: サンプル名
-#     :param stock: 初期在庫量（デフォルト 0）
-#     :return: 新規作成レコードの sample_id
-#     """
-#     conn = get_db_connection()
-#     try:
-#         with conn.cursor() as cursor:
-#             cursor.execute(
-#                 "INSERT INTO samples (sample_name, sample_stock) VALUES (%s, %s);",
-#                 (name, stock)
-#             )
-#             conn.commit()
-#             return cursor.lastrowid
-#     finally:
-#         conn.close()
+    :param sample_id: 更新対象のサンプルID
+    :param new_stock: 新しい在庫数
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "UPDATE samples SET sample_stock = %s WHERE sample_id = %s;",
+                (new_stock, sample_id)
+            )
+            conn.commit()
+    finally:
+        conn.close()
 
 
 def resolve_sample_id(cursor, name):

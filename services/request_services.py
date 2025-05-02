@@ -49,7 +49,8 @@ def post_record(data):
                 resolve_shipping_address_code(cursor, data['address_name']),
                 data['preferred_date'],
                 resolve_status_no(cursor, data['status_name']),
-                resolve_user_id(cursor, data['user_name'])
+                # resolve_user_id(cursor, data['user_name'])
+                data['user_id']
             )
         )
         conn.commit()
@@ -89,7 +90,7 @@ def get_by_user_id(user_id: int) -> list:
                   ON r.sample_id = s.sample_id
                 JOIN shipping_addresses sa
                   ON r.shipping_address_code = sa.shipping_address_code
-                JOIN status_master st
+                JOIN statuses st
                   ON r.status_no = st.status_no
                 WHERE r.user_id = %s
                 ORDER BY r.created_at DESC
