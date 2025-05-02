@@ -17,3 +17,9 @@ def _post_request(req: func.HttpRequest) -> func.HttpResponse:
 @app.function_name(name='GetRequests')
 def _get_requests(req: func.HttpRequest) -> func.HttpResponse:
     return get_requests(req)
+
+
+# @app.route(route='get_requests', methods=['GET'])
+# @app.function_name(name='GetRequests')
+# def _get_requests(req: func.HttpRequest) -> func.HttpResponse:
+#     return get_requests(req)
