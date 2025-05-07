@@ -63,8 +63,8 @@ def _login(req: func.HttpRequest) -> func.HttpResponse:
     return login(req)
 
 
-@app.route(route='sample_histories', methods=['GET'])
-@app.function_name(name='GetSampleHistories')
+@app.route(route="sample_histories", methods=[func.HttpMethod.GET])
+@app.function_name(name="GetSampleHistories")
 def _get_sample_histories(req: func.HttpRequest) -> func.HttpResponse:
     return get_sample_histories(req)
 

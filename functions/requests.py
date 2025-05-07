@@ -2,6 +2,7 @@ import azure.functions as func
 from services.request_services import post_record, get_all, get_by_user_id, change_request_status, change_comment
 import logging
 import json
+from services.history_service import insert_history_from_request
 
 
 def post_request(req: func.HttpRequest) -> func.HttpResponse:
@@ -50,7 +51,7 @@ def get_requests_by_user(req: func.HttpRequest) -> func.HttpResponse:
 
 
 def update_request_status(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info("Processing PUT /requests/{id}/status")
+    logging.info("Processing PUT /requests/{id}/status with history")
 
     # 1) ルートパラメータから request_id を取得
     request_id = req.route_params.get("id")
@@ -66,13 +67,22 @@ def update_request_status(req: func.HttpRequest) -> func.HttpResponse:
     if "status_no" not in data:
         return func.HttpResponse("Missing field: status_no", status_code=400)
 
-    # 3) サービス層を呼び出して DB 更新
+    # 3) ステータス更新 + 4) 履歴登録
     try:
-        change_request_status(
-            request_id=int(request_id),
-            status_no=int(data["status_no"])
-        )
+        rid = int(request_id)
+        new_status = int(data["status_no"])
+
+        # a) ステータス更新
+        change_request_status(request_id=rid, status_no=new_status)
+
+        # b) 履歴テーブルに INSERT (action_type="shipment")
+        try:
+            insert_history_from_request(request_id=rid, action_type="shipment")
+        except Exception as hist_err:
+            logging.error(f"Failed to insert history for request {rid}: {hist_err}")
+
         return func.HttpResponse(status_code=200)
+
     except Exception as e:
         logging.error(f"Error in update_request_status: {e}")
         return func.HttpResponse(str(e), status_code=500)
