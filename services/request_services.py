@@ -107,7 +107,8 @@ def get_by_user_id(user_id: int) -> list:
                   r.comment,
                   st.status_name,
                   st.status_no,
-                  r.created_at
+                  r.created_at,
+                  r.updated_at
                 FROM requests r
                 JOIN samples s
                   ON r.sample_id = s.sample_id
