@@ -1,5 +1,5 @@
 import azure.functions as func
-from services.request_services import post_record, get_all, get_by_user_id, change_request_status
+from services.request_services import post_record, get_all, get_by_user_id, change_request_status, change_comment
 import logging
 import json
 
@@ -76,3 +76,33 @@ def update_request_status(req: func.HttpRequest) -> func.HttpResponse:
     except Exception as e:
         logging.error(f"Error in update_request_status: {e}")
         return func.HttpResponse(str(e), status_code=500)
+    
+
+def update_comment(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info("Processing PUT /requests/{id}/comment")
+
+    # 1) ルートパラメータから request_id を取得
+    request_id = req.route_params.get("id")
+    if not request_id:
+        return func.HttpResponse("Missing request id in route", status_code=400)
+
+    # 2) ボディから新しい status_no をパース
+    try:
+        data = req.get_json()
+    except ValueError:
+        return func.HttpResponse("Invalid JSON", status_code=400)
+
+    if "status_no" not in data:
+        return func.HttpResponse("Missing field: status_no", status_code=400)
+
+    # 3) サービス層を呼び出して DB 更新
+    try:
+        change_comment(
+            request_id=int(request_id),
+            comment=data["comment"]
+        )
+        return func.HttpResponse(status_code=200)
+    except Exception as e:
+        logging.error(f"Error in update_request_status: {e}")
+        return func.HttpResponse(str(e), status_code=500)
+    

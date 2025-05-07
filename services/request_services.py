@@ -3,6 +3,7 @@ from services.sample_services import *
 from services.shipping_address_services import *
 from services.status_services import *
 from services.user_services import *
+from services.stock_services import *
 import logging
 import pymysql
 
@@ -21,6 +22,7 @@ def get_all():
             r.preferred_date,
             r.comment,
             st.status_name,
+            st.status_no,
             r.created_at
         FROM requests r
         JOIN samples s
@@ -104,6 +106,7 @@ def get_by_user_id(user_id: int) -> list:
                   r.preferred_date,
                   r.comment,
                   st.status_name,
+                  st.status_no,
                   r.created_at
                 FROM requests r
                 JOIN samples s
@@ -140,6 +143,30 @@ def change_request_status(request_id: int, status_no: int) -> None:
                  WHERE id = %s
                 """,
                 (status_no, request_id)
+            )
+            conn.commit()
+    finally:
+        conn.close()
+
+
+
+def change_comment(request_id: int, comment: str) -> None:
+    """
+    指定された request_id の status_no を更新し、
+    updated_at を CURRENT_TIMESTAMP で上書きします。
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            # post_history(cursor, data)
+            cursor.execute(
+                """
+                UPDATE requests
+                   SET comment   = %s,
+                       updated_at  = CURRENT_TIMESTAMP
+                 WHERE id = %s
+                """,
+                (comment, request_id)
             )
             conn.commit()
     finally:

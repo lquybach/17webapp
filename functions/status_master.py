@@ -4,7 +4,7 @@ import azure.functions as func
 import json
 import logging
 from utils.db import get_db_connection
-from services.status_service import resolve_status_no, get_all_statuses
+from services.status_services import resolve_status_no, get_all_statuses
 
 
 def get_status_master(req: func.HttpRequest) -> func.HttpResponse:

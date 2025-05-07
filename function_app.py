@@ -1,10 +1,12 @@
 import azure.functions as func
-from functions.requests import post_request, get_requests, get_requests_by_user, update_request_status
+from functions.requests import post_request, get_requests, get_requests_by_user, update_request_status, update_comment
 from functions.samples import get_samples
 from functions.shipping_address import get_shipping_addresses
 from functions.login import login
+from functions.stocks import update_stock
 from functions.history import get_sample_histories
-from functions.status_master import status_master
+from functions.status_master import get_status_master
+
 
 
 
@@ -49,6 +51,11 @@ def _get_shipping_addresses(req: func.HttpRequest) -> func.HttpResponse:
 def _update_request_status(req: func.HttpRequest) -> func.HttpResponse:
     return update_request_status(req)
 
+@app.route(route="requests/{id}/comment", methods=[func.HttpMethod.PUT])
+@app.function_name(name="UpdateComment")
+def _update_comment(req: func.HttpRequest) -> func.HttpResponse:
+    return update_comment(req)
+
 # 既存のエンドポイント定義の前に、ログインを追加
 @app.route(route="login", methods=[func.HttpMethod.POST])
 @app.function_name(name="Login")
@@ -64,4 +71,10 @@ def _get_sample_histories(req: func.HttpRequest) -> func.HttpResponse:
 @app.route(route="status_master", methods=[func.HttpMethod.GET, func.HttpMethod.POST])
 @app.function_name(name="StatusMaster")
 def _status_master(req: func.HttpRequest) -> func.HttpResponse:
-    return status_master(req)
+    return get_status_master(req)
+
+
+@app.route(route="samples/{id}/stock", methods=[func.HttpMethod.PUT])
+@app.function_name(name="UpdateStock")
+def _update_stock(req: func.HttpRequest) -> func.HttpResponse:
+    return update_stock(req)
