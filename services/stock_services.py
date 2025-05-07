@@ -46,15 +46,16 @@ def post_history(cursor, data):
             sample_id, 
             sample_name, 
             sample_stock,
-            user_id
+            user_id,
+            comment
         ) 
-        VALUES (%s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s)
         ''',
         (
             resolve_sample_id(cursor, data['sample_name']),
             data['sample_name'],
             data['sample_stock'],
             data['user_id'],
-            # data['comment']
+            data['comment']
         )
     )

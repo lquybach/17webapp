@@ -42,5 +42,3 @@ def login(req: func.HttpRequest) -> func.HttpResponse:
         status_code=200,
         mimetype="application/json"
     )
-
-    # Test connection

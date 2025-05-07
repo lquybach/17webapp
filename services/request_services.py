@@ -11,7 +11,26 @@ import pymysql
 def get_all():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM requests')
+    cursor.execute(
+        """
+        SELECT
+            r.id,
+            s.sample_name,
+            r.quantity,
+            sa.address_name,
+            r.preferred_date,
+            r.comment,
+            st.status_name,
+            r.created_at
+        FROM requests r
+        JOIN samples s
+            ON r.sample_id = s.sample_id
+        JOIN shipping_addresses sa
+            ON r.shipping_address_code = sa.shipping_address_code
+        JOIN statuses st
+            ON r.status_no = st.status_no
+        ORDER BY r.created_at DESC
+        """)
     rows = cursor.fetchall()
     conn.close()
     return rows
@@ -39,9 +58,10 @@ def post_record(data):
                 shipping_address_code,
                 preferred_date, 
                 status_no, 
-                user_id
+                user_id,
+                comment
             ) 
-            VALUES (%s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             ''',
             (
                 resolve_sample_id(cursor, data['sample_name']),
@@ -49,8 +69,8 @@ def post_record(data):
                 resolve_shipping_address_code(cursor, data['address_name']),
                 data['preferred_date'],
                 resolve_status_no(cursor, data['status_name']),
-                # resolve_user_id(cursor, data['user_name'])
-                data['user_id']
+                data['user_id'],
+                data['comment']
             )
         )
         conn.commit()

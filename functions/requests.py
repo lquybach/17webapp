@@ -14,7 +14,11 @@ def post_request(req: func.HttpRequest) -> func.HttpResponse:
 def get_requests(req: func.HttpRequest) -> func.HttpResponse:
     ret = get_all()
     if ret:
-        return func.HttpResponse(body=str(ret), status_code=200)
+        return func.HttpResponse(
+            body=json.dumps(ret, ensure_ascii=False, default=str),
+            status_code=200,
+            mimetype='application/json'
+        )
     return func.HttpResponse('Request not found', status_code=404)
 
 #Yasuharu編集分

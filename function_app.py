@@ -3,6 +3,7 @@ from functions.requests import post_request, get_requests, get_requests_by_user,
 from functions.samples import get_samples
 from functions.shipping_address import get_shipping_addresses
 from functions.login import login
+from functions.history import get_sample_histories
 
 
 
@@ -52,3 +53,9 @@ def _update_request_status(req: func.HttpRequest) -> func.HttpResponse:
 @app.function_name(name="Login")
 def _login(req: func.HttpRequest) -> func.HttpResponse:
     return login(req)
+
+
+@app.route(route='sample_histories', methods=['GET'])
+@app.function_name(name='GetSampleHistories')
+def _get_sample_histories(req: func.HttpRequest) -> func.HttpResponse:
+    return get_sample_histories(req)
