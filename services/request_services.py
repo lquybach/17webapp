@@ -152,7 +152,7 @@ def change_request_status(request_id: int, status_no: int) -> None:
 
 def change_comment(request_id: int, comment: str) -> None:
     """
-    指定された request_id の status_no を更新し、
+    指定された request_id の commnet を更新し、
     updated_at を CURRENT_TIMESTAMP で上書きします。
     """
     conn = get_db_connection()

@@ -81,28 +81,31 @@ def update_request_status(req: func.HttpRequest) -> func.HttpResponse:
 def update_comment(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Processing PUT /requests/{id}/comment")
 
-    # 1) ルートパラメータから request_id を取得
+   # 1) route から id を取得
     request_id = req.route_params.get("id")
     if not request_id:
-        return func.HttpResponse("Missing request id in route", status_code=400)
+        return func.HttpResponse("Missing request id", status_code=400)
 
-    # 2) ボディから新しい status_no をパース
+    # 2) JSON ボディを parse
     try:
         data = req.get_json()
     except ValueError:
         return func.HttpResponse("Invalid JSON", status_code=400)
 
-    if "status_no" not in data:
-        return func.HttpResponse("Missing field: status_no", status_code=400)
+    comment = data.get("comment")
+    if comment is None:
+        return func.HttpResponse("Missing field: comment", status_code=400)
+
+    try:
+        rid = int(request_id)
+    except (TypeError, ValueError):
+        return func.HttpResponse("Invalid request id", status_code=400)
 
     # 3) サービス層を呼び出して DB 更新
     try:
-        change_comment(
-            request_id=int(request_id),
-            comment=data["comment"]
-        )
+        change_comment(rid, comment)
         return func.HttpResponse(status_code=200)
     except Exception as e:
-        logging.error(f"Error in update_request_status: {e}")
+        logging.error(f"Error updating comment: {e}")
         return func.HttpResponse(str(e), status_code=500)
     
