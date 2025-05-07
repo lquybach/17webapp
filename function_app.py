@@ -4,6 +4,7 @@ from functions.samples import get_samples
 from functions.shipping_address import get_shipping_addresses
 from functions.login import login
 from functions.history import get_sample_histories
+from functions.status_master import status_master
 
 
 
@@ -59,3 +60,8 @@ def _login(req: func.HttpRequest) -> func.HttpResponse:
 @app.function_name(name='GetSampleHistories')
 def _get_sample_histories(req: func.HttpRequest) -> func.HttpResponse:
     return get_sample_histories(req)
+
+@app.route(route="status_master", methods=[func.HttpMethod.GET, func.HttpMethod.POST])
+@app.function_name(name="StatusMaster")
+def _status_master(req: func.HttpRequest) -> func.HttpResponse:
+    return status_master(req)
