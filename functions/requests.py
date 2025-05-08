@@ -4,7 +4,7 @@ import logging
 from utils.db import get_db_connection
 import json
 from services.history_service import insert_history_from_request, insert_shipment_history
-from services.stock_service import update_sample_stock, get_stock
+from services.stock_services import update_sample_stock, get_stock
 
 
 
@@ -151,9 +151,10 @@ def get_request_by_id(request_id: int) -> dict:
         with conn.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT id, sample_id, quantity, user_id, comment
-                FROM requests
-                WHERE id = %s
+                SELECT r.id, r.sample_id, s.sample_name, r.quantity, r.user_id, r.comment
+                FROM requests AS r
+                JOIN samples AS s ON r.sample_id = s.sample_id
+                WHERE r.id = %s
                 """,
                 (request_id,)
             )

@@ -2,7 +2,7 @@
 
 import azure.functions as func
 import logging
-from services.stock_service import update_sample_stock
+from services.stock_services import update_sample_stock
 from services.history_service import insert_history_from_request, insert_stock_history
 
 def update_stock(req: func.HttpRequest) -> func.HttpResponse:
@@ -16,8 +16,8 @@ def update_stock(req: func.HttpRequest) -> func.HttpResponse:
     # フロントから送られるキー名に合わせて取得
     sample_id   = data.get("sample_id")
     new_stock   = data.get("new_stock")
-    operator_id = data.get("user_id")   # フロントで localStorage の user_id を送っている場合
-    comment     = data.get("comment")   # 任意
+    # operator_id = data.get("user_id")   # フロントで localStorage の user_id を送っている場合
+    # comment     = data.get("comment")   # 任意
 
     if sample_id is None or new_stock is None:
         return func.HttpResponse("Missing field: sample_id or new_stock", status_code=400)
@@ -33,13 +33,15 @@ def update_stock(req: func.HttpRequest) -> func.HttpResponse:
         previous_stock = update_sample_stock(sample_id, new_stock)
         logging.info(f"Stock for sample {sample_id}: {previous_stock}→{new_stock}")
 
+        logging.info(data.get("user_id"))
+
         # 2) 在庫編集履歴をINSERT (action_type="stock_edit")
         try:
             insert_stock_history(
                 sample_id=sample_id,
                 previous_stock=previous_stock,
                 new_stock=new_stock,
-                operator_user_id=int(data.get("user_id", 0)),
+                operator_user_id=int(data.get("operator_user_id", 0)),
                 comment=data.get("comment"),
                 request_id=int(data.get("request_id", 0))
             )
