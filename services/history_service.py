@@ -157,3 +157,48 @@ def insert_stock_history(
         conn.commit()
     finally:
         conn.close()
+
+
+def insert_shipment_history(
+    request_id: int,
+    operator_user_id: int,
+    comment: str,
+    sample_id: int,
+    sample_name: str,
+    previous_stock: int,
+    new_stock: int
+) -> None:
+    """
+    出荷操作用に、前在庫・新在庫をそのまま履歴に INSERT する。
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO sample_histories (
+                  request_id,
+                  action_type,
+                  sample_id,
+                  sample_name,
+                  sample_stock,
+                  previous_stock,
+                  new_stock,
+                  operator_user_id,
+                  comment,
+                  updated_at
+                ) VALUES (
+                  %s, 'shipment', %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP
+                )
+            """, (
+                request_id,
+                sample_id,
+                sample_name,
+                previous_stock,  # ここは「差し引く前」の在庫
+                previous_stock,
+                new_stock,       # ここは「差し引いた後」の在庫
+                operator_user_id,
+                comment or ""
+            ))
+        conn.commit()
+    finally:
+        conn.close()
