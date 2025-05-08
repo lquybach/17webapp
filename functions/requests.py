@@ -53,12 +53,10 @@ def get_requests_by_user(req: func.HttpRequest) -> func.HttpResponse:
 def update_request_status(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Processing PUT /requests/{id}/status with history")
 
-    # 1) ルートパラメータから request_id を取得
     request_id = req.route_params.get("id")
     if not request_id:
         return func.HttpResponse("Missing request id in route", status_code=400)
 
-    # 2) ボディから新しい status_no をパース
     try:
         data = req.get_json()
     except ValueError:
@@ -67,19 +65,27 @@ def update_request_status(req: func.HttpRequest) -> func.HttpResponse:
     if "status_no" not in data:
         return func.HttpResponse("Missing field: status_no", status_code=400)
 
-    # 3) ステータス更新 + 4) 履歴登録
+    # フロントから operator_user_id, comment が送られていれば拾う
+    operator_user_id = data.get("operator_user_id")
+    comment          = data.get("comment")
+
     try:
-        rid = int(request_id)
+        rid        = int(request_id)
         new_status = int(data["status_no"])
 
-        # a) ステータス更新
+        # 1) ステータス更新
         change_request_status(request_id=rid, status_no=new_status)
 
-        # b) 履歴テーブルに INSERT (action_type="shipment")
+        # 2) 履歴INSERT (action_type="shipment")
         try:
-            insert_history_from_request(request_id=rid, action_type="shipment")
+            insert_history_from_request(
+                request_id=rid,
+                action_type="shipment",
+                operator_user_id=operator_user_id,
+                comment=comment
+            )
         except Exception as hist_err:
-            logging.error(f"Failed to insert history for request {rid}: {hist_err}")
+            logging.error(f"Failed to insert shipment history for {rid}: {hist_err}")
 
         return func.HttpResponse(status_code=200)
 
