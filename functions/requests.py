@@ -88,8 +88,8 @@ def update_request_status(req: func.HttpRequest) -> func.HttpResponse:
         change_request_status(request_id=rid, status_no=new_status)
         logging.info(f"Updated request[{rid}].status_no = {new_status}")
 
-        # 5) 発送済み(status_no==2)なら在庫を減算
-        if new_status == 2:
+        # 5) 発送済み(status_no==3)なら在庫を減算
+        if new_status == 3:
             info       = get_request_by_id(rid)
             sample_id  = info["sample_id"]
             quantity   = int(info["quantity"])
