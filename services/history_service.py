@@ -99,11 +99,13 @@ def insert_stock_history(
     previous_stock: int,
     new_stock: int,
     operator_user_id: int = None,
-    comment: str = None
+    comment: str = None,
+    request_id: int = 0
 ) -> None:
     """
     在庫編集専用の履歴 INSERT。
-    action_type は 'stock_edit' 固定。
+    - action_type は 'stock_edit' 固定
+    - request_id は NULL 不許容（デフォルト 0）
     """
     conn = get_db_connection()
     try:
@@ -119,6 +121,7 @@ def insert_stock_history(
             # INSERT
             cursor.execute("""
                 INSERT INTO sample_histories (
+                  request_id,
                   action_type,
                   sample_id,
                   sample_name,
@@ -128,9 +131,10 @@ def insert_stock_history(
                   comment,
                   updated_at
                 ) VALUES (
-                  %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP
+                  %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP
                 )
             """, (
+                request_id,
                 "stock_edit",
                 sample_id,
                 sample_name,

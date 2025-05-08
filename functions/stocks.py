@@ -39,8 +39,9 @@ def update_stock(req: func.HttpRequest) -> func.HttpResponse:
                 sample_id=sample_id,
                 previous_stock=previous_stock,
                 new_stock=new_stock,
-                operator_user_id=int(operator_id) if operator_id else None,
-                comment=comment
+                operator_user_id=int(data.get("user_id", 0)),
+                comment=data.get("comment"),
+                request_id=int(data.get("request_id", 0))
             )
         except Exception as hist_err:
             logging.error(f"Stock-edit history insert failed: {hist_err}")
