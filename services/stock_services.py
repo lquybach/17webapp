@@ -64,28 +64,29 @@ def post_history(cursor, data):
 
 def update_sample_stock(sample_id: int, new_stock: int) -> int:
     """
-    前在庫を返しつつ、新在庫をセットします。
+    前在庫を返しつつ、新在庫を sample_stock のみ更新します。
+    (updated_at は操作しません)
     """
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            # 前在庫取得
+            # 1) 前在庫取得
             cursor.execute(
                 "SELECT sample_stock FROM samples WHERE sample_id = %s",
                 (sample_id,)
             )
             prev = cursor.fetchone()["sample_stock"]
 
-            # 在庫更新
+            # 2) sample_stock のみ更新
             cursor.execute(
-                "UPDATE samples SET sample_stock = %s, updated_at = CURRENT_TIMESTAMP WHERE sample_id = %s",
+                "UPDATE samples SET sample_stock = %s WHERE sample_id = %s",
                 (new_stock, sample_id)
             )
+
         conn.commit()
         return prev
     finally:
         conn.close()
-
 def get_stock(sample_id: int) -> int:
     """
     現在の在庫数を返します。

@@ -54,40 +54,52 @@ def get_requests_by_user(req: func.HttpRequest) -> func.HttpResponse:
 
 
 def update_request_status(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info("Processing PUT /requests/{id}/status with history + stock")
+    logging.info("Processing PUT /requests/{id}/status with comment sync + history")
 
+    # 1) route から request_id を取得
     request_id = req.route_params.get("id")
     if not request_id:
-        return func.HttpResponse("Missing request id", status_code=400)
+        return func.HttpResponse("Missing request id in route", status_code=400)
 
+    # 2) JSON ボディ parse
     try:
         data = req.get_json()
     except ValueError:
         return func.HttpResponse("Invalid JSON", status_code=400)
 
-    if "status_no" not in data:
-        return func.HttpResponse("Missing field: status_no", status_code=400)
-
-    rid               = int(request_id)
-    new_status        = int(data["status_no"])
-    operator_user_id  = data.get("operator_user_id")
-    comment           = data.get("comment")
+    # 必須フィールドチェック
+    if "status_no" not in data or "comment" not in data:
+        return func.HttpResponse("Missing field: status_no or comment", status_code=400)
 
     try:
-        # 1) ステータス更新
-        change_request_status(request_id=rid, status_no=new_status)
+        rid        = int(request_id)
+        new_status = int(data["status_no"])
+        comment    = data["comment"]
+        operator_user_id = data.get("operator_user_id")
+    except (TypeError, ValueError):
+        return func.HttpResponse("Invalid numeric value", status_code=400)
 
-        # 2) 「発送済み」なら在庫差し引き
-        if new_status == 2:  # 2 = 発送済み と仮定
+    try:
+        # 3) まずコメントを requests テーブルに書き込む
+        change_comment(request_id=rid, comment=comment)
+        logging.info(f"Updated request[{rid}].comment = {comment}")
+
+        # 4) ステータス更新
+        change_request_status(request_id=rid, status_no=new_status)
+        logging.info(f"Updated request[{rid}].status_no = {new_status}")
+
+        # 5) 発送済み(status_no==2)なら在庫を減算
+        if new_status == 2:
             info       = get_request_by_id(rid)
             sample_id  = info["sample_id"]
             quantity   = int(info["quantity"])
+
             current_st = get_stock(sample_id)
             new_stock  = max(0, current_st - quantity)
             prev_stock = update_sample_stock(sample_id, new_stock)
-            logging.info(f"Stock deducted for sample {sample_id}: {prev_stock}→{new_stock}")
+            logging.info(f"Deducted stock for sample {sample_id}: {prev_stock}→{new_stock}")
 
-        # 3) 履歴INSERT（shipment）
+        # 6) 履歴INSERT（action_type="shipment"）
         try:
             insert_history_from_request(
                 request_id=rid,
@@ -95,8 +107,8 @@ def update_request_status(req: func.HttpRequest) -> func.HttpResponse:
                 operator_user_id=operator_user_id,
                 comment=comment
             )
-        except Exception as e:
-            logging.error(f"Shipment history insert failed for {rid}: {e}")
+        except Exception as hist_err:
+            logging.error(f"Shipment history insert failed for {rid}: {hist_err}")
 
         return func.HttpResponse(status_code=200)
 
