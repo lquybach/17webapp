@@ -1,4 +1,4 @@
-# functions/stock.py など
+# functions/stock.py
 
 import azure.functions as func
 import logging
@@ -7,34 +7,47 @@ from services.history_service import insert_history_from_request
 
 def update_stock(req: func.HttpRequest) -> func.HttpResponse:
     """
-    PUT /stock  等
-    Body JSON: { "request_id": <int>, "sample_id": <int>, "new_stock": <int> }
+    PUT /samples/{id}/stock
+    Body JSON must include:
+      - sample_id   : int
+      - new_stock   : int
+      - request_id  : int (can be 0 if not tied to a request)
     """
+    logging.info("Processing PUT /samples/{id}/stock")
+
     try:
         data = req.get_json()
     except ValueError:
         return func.HttpResponse("Invalid JSON", status_code=400)
 
-    # 必須フィールドチェック
-    for key in ("request_id", "sample_id", "new_stock"):
-        if key not in data:
-            return func.HttpResponse(f"Missing field: {key}", status_code=400)
+    # 必須チェック
+    sample_id = data.get("sample_id")
+    new_stock = data.get("new_stock")
+    request_id = data.get("request_id", 0)
 
-    rid       = int(data["request_id"])
-    sample_id = int(data["sample_id"])
-    new_stock = int(data["new_stock"])
+    if sample_id is None or new_stock is None:
+        return func.HttpResponse("Missing field: sample_id or new_stock", status_code=400)
 
-    logging.info(f"Updating stock for sample {sample_id} to {new_stock}")
+    # 型変換
+    try:
+        sample_id  = int(sample_id)
+        new_stock  = int(new_stock)
+        request_id = int(request_id)
+    except (TypeError, ValueError):
+        return func.HttpResponse("Invalid numeric value", status_code=400)
+
+    logging.info(f"Updating stock for sample_id={sample_id} to new_stock={new_stock}")
 
     try:
-        # 1) 在庫更新
-        update_sample_stock(sample_id, new_stock)
+        # 1) 在庫更新し、変更前在庫を受け取る
+        previous_stock = update_sample_stock(sample_id, new_stock)
+        logging.info(f"Stock change: sample_id={sample_id}, previous={previous_stock}, new={new_stock}")
 
-        # 2) 履歴 INSERT （action_type="stock_edit"）
+        # 2) 履歴テーブルに INSERT (action_type="stock_edit")
         try:
-            insert_history_from_request(request_id=rid, action_type="stock_edit")
+            insert_history_from_request(request_id=request_id, action_type="stock_edit")
         except Exception as hist_err:
-            logging.error(f"Failed to insert stock-edit history for request {rid}: {hist_err}")
+            logging.error(f"Failed to insert stock-edit history for request {request_id}: {hist_err}")
 
         return func.HttpResponse("Stock updated", status_code=200)
 
