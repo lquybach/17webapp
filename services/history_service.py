@@ -37,43 +37,41 @@ def insert_history_from_request(
 ) -> None:
     """
     出荷操作用の履歴INSERT。
-    - action_type は 'shipment'
-    - operator_user_id: ログインユーザーID（Noneなら requests.user_idを使用）
-    - comment: リクエスト時コメント or 引数comment
+    - action_type: 'shipment'
+    - operator_user_id: 操作ユーザーID (Noneならrequests.user_idを使用)
+    - comment: 任意
     """
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            # 1) リクエスト基本情報取得
+            # 1) リクエスト情報取得
             cursor.execute(
                 "SELECT sample_id, comment AS req_comment, user_id FROM requests WHERE id = %s",
                 (request_id,)
             )
             req = cursor.fetchone()
-            sample_id = req["sample_id"]
-            # コメントはリクエストのもの優先。それも無ければ引数comment、さらに無ければ空文字
-            final_comment = req.get("req_comment") or comment or ""
-            # operator_user_id が None なら requests.user_id を使う
+            sample_id      = req["sample_id"]
+            final_comment  = req.get("req_comment") or comment or ""
             final_operator = operator_user_id if operator_user_id is not None else req.get("user_id")
 
-            # 2) サンプル情報取得（現在在庫）
+            # 2) サンプル現在在庫取得
             cursor.execute(
                 "SELECT sample_name, sample_stock FROM samples WHERE sample_id = %s",
                 (sample_id,)
             )
-            samp = cursor.fetchone()
+            samp           = cursor.fetchone()
             sample_name    = samp["sample_name"]
             sample_stock   = samp["sample_stock"]
-            previous_stock = samp["sample_stock"]
+            previous_stock = sample_stock
 
-            # 3) 出荷後在庫を再取得（別ロジックで在庫減算済みなら最新が入る）
+            # 3) 出荷後の在庫取得
             cursor.execute(
                 "SELECT sample_stock FROM samples WHERE sample_id = %s",
                 (sample_id,)
             )
-            new_stock = cursor.fetchone()["sample_stock"]
+            new_stock      = cursor.fetchone()["sample_stock"]
 
-            # 4) INSERT（必ず sample_stock を含める）
+            # 4) INSERT
             cursor.execute("""
                 INSERT INTO sample_histories (
                   request_id,
@@ -86,9 +84,7 @@ def insert_history_from_request(
                   operator_user_id,
                   comment,
                   updated_at
-                ) VALUES (
-                  %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP
-                )
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)
             """, (
                 request_id,
                 action_type,
@@ -103,7 +99,6 @@ def insert_history_from_request(
         conn.commit()
     finally:
         conn.close()
-
 
 def insert_stock_history(
     sample_id: int,

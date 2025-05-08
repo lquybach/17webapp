@@ -54,11 +54,11 @@ def get_requests_by_user(req: func.HttpRequest) -> func.HttpResponse:
 
 
 def update_request_status(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info("Processing PUT /requests/{id}/status with stock deduction")
+    logging.info("Processing PUT /requests/{id}/status with history + stock")
 
     request_id = req.route_params.get("id")
     if not request_id:
-        return func.HttpResponse("Missing request id in route", status_code=400)
+        return func.HttpResponse("Missing request id", status_code=400)
 
     try:
         data = req.get_json()
@@ -68,37 +68,26 @@ def update_request_status(req: func.HttpRequest) -> func.HttpResponse:
     if "status_no" not in data:
         return func.HttpResponse("Missing field: status_no", status_code=400)
 
-    operator_user_id = data.get("operator_user_id")
-    comment          = data.get("comment")
-
-    try:
-        rid        = int(request_id)
-        new_status = int(data["status_no"])
-    except (TypeError, ValueError):
-        return func.HttpResponse("Invalid numeric value", status_code=400)
+    rid               = int(request_id)
+    new_status        = int(data["status_no"])
+    operator_user_id  = data.get("operator_user_id")
+    comment           = data.get("comment")
 
     try:
         # 1) ステータス更新
         change_request_status(request_id=rid, status_no=new_status)
 
-        # 2) 発送済み(status_no==2)なら在庫を減算
-        if new_status == 2:
-            req_info  = get_request_by_id(rid)
-            sample_id = req_info["sample_id"]
-            quantity  = int(req_info["quantity"])
-
-            # 現在在庫を取得
-            current_stock = get_stock(sample_id)
-            # 差し引いて新在庫を計算
-            new_stock = current_stock - quantity
-            if new_stock < 0:
-                new_stock = 0
-
-            # 在庫を更新（prev_stock は無視してOK）
+        # 2) 「発送済み」なら在庫差し引き
+        if new_status == 2:  # 2 = 発送済み と仮定
+            info       = get_request_by_id(rid)
+            sample_id  = info["sample_id"]
+            quantity   = int(info["quantity"])
+            current_st = get_stock(sample_id)
+            new_stock  = max(0, current_st - quantity)
             prev_stock = update_sample_stock(sample_id, new_stock)
-            logging.info(f"Deduct stock sample={sample_id}: {prev_stock}→{new_stock}")
+            logging.info(f"Stock deducted for sample {sample_id}: {prev_stock}→{new_stock}")
 
-        # 3) 履歴INSERT (action_type="shipment")
+        # 3) 履歴INSERT（shipment）
         try:
             insert_history_from_request(
                 request_id=rid,
@@ -106,14 +95,14 @@ def update_request_status(req: func.HttpRequest) -> func.HttpResponse:
                 operator_user_id=operator_user_id,
                 comment=comment
             )
-        except Exception as hist_err:
-            logging.error(f"Failed to insert shipment history for {rid}: {hist_err}")
+        except Exception as e:
+            logging.error(f"Shipment history insert failed for {rid}: {e}")
 
         return func.HttpResponse(status_code=200)
 
     except Exception as e:
-        logging.error(f"Error in update_request_status: {e}")
-        return func.HttpResponse(str(e), status_code=500)
+        logging.error(f"Error in update_request_status: {e}", exc_info=True)
+        return func.HttpResponse(f"Internal error: {e}", status_code=500)
 
 def update_comment(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Processing PUT /requests/{id}/comment")
