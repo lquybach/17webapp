@@ -30,23 +30,31 @@ def get_all_histories() -> list:
         conn.close()
 
 
-def insert_history_from_request(request_id: int, action_type: str) -> None:
+def insert_history_from_request(
+    request_id: int,
+    action_type: str,
+    operator_user_id: int = None,
+    comment: str = None
+) -> None:
     """
-    request_id に紐づくリクエスト操作 ('shipment') 用の履歴 INSERT。
-    sample_stock は INSERT 時点のサンプル在庫をそのまま格納します。
+    出荷操作用の履歴INSERT。
+    - action_type は 'shipment'
+    - operator_user_id: 実際に出荷操作を行ったユーザーID（必須）
+    - comment: 申請時コメント or 空文字
     """
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            # 1) リクエスト情報取得
+            # 1) リクエスト基本情報取得
             cursor.execute(
-                "SELECT sample_id, user_id, comment FROM requests WHERE id = %s",
+                "SELECT sample_id, comment AS req_comment FROM requests WHERE id = %s",
                 (request_id,)
             )
             req = cursor.fetchone()
-            sample_id        = req["sample_id"]
-            operator_user_id = req.get("user_id")
-            comment          = req.get("comment")
+            sample_id = req["sample_id"]
+            # fallback: リクエストにコメントがなければ引数
+            req_comment = req.get("req_comment") or ""
+            final_comment = comment if comment is not None else req_comment
 
             # 2) サンプル現在情報取得
             cursor.execute(
@@ -54,18 +62,18 @@ def insert_history_from_request(request_id: int, action_type: str) -> None:
                 (sample_id,)
             )
             samp = cursor.fetchone()
-            sample_name     = samp["sample_name"]
-            sample_stock    = samp["sample_stock"]
-            previous_stock  = samp["sample_stock"]
+            sample_name  = samp["sample_name"]
+            sample_stock = samp["sample_stock"]
+            previous_stock = sample_stock
 
-            # 3) 出荷後の在庫を再取得（もし出荷時に在庫減算をしているならこちらを使う）
+            # 3) 出荷後の在庫を再取得（もし出荷時に別ロジックで更新している場合）
             cursor.execute(
                 "SELECT sample_stock FROM samples WHERE sample_id = %s",
                 (sample_id,)
             )
             new_stock = cursor.fetchone()["sample_stock"]
 
-            # 4) INSERT
+            # 4) 履歴テーブルにINSERT
             cursor.execute("""
                 INSERT INTO sample_histories (
                   request_id,
@@ -90,7 +98,7 @@ def insert_history_from_request(request_id: int, action_type: str) -> None:
                 previous_stock,
                 new_stock,
                 operator_user_id,
-                comment
+                final_comment
             ))
         conn.commit()
     finally:
@@ -101,25 +109,21 @@ def insert_stock_history(
     sample_id: int,
     previous_stock: int,
     new_stock: int,
-    operator_user_id: int = None,
+    operator_user_id: int,
     comment: str = None,
     request_id: int = 0
 ) -> None:
     """
-    在庫編集 ('stock_edit') 用の履歴 INSERT。
-    request_id は編集に関係するリクエストID (なければ 0)、
-    sample_stock は編集前の在庫。
-
-    カラム順:
-      request_id, action_type,
-      sample_id, sample_name, sample_stock,
-      previous_stock, new_stock,
-      operator_user_id, comment, updated_at
+    在庫編集用の履歴INSERT。
+    - action_type は 'stock_edit'
+    - operator_user_id: 在庫編集を行ったユーザーID（必須）
+    - comment: 任意のコメント
+    - request_id: 申請に紐づくIDがあれば、なければ 0
     """
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            # サンプル名＆現在の在庫取得
+            # 1) サンプル名＆最新在庫取得
             cursor.execute(
                 "SELECT sample_name, sample_stock FROM samples WHERE sample_id = %s",
                 (sample_id,)
@@ -128,7 +132,7 @@ def insert_stock_history(
             sample_name  = samp["sample_name"]
             sample_stock = samp["sample_stock"]
 
-            # INSERT
+            # 2) INSERT
             cursor.execute("""
                 INSERT INTO sample_histories (
                   request_id,
@@ -153,7 +157,7 @@ def insert_stock_history(
                 previous_stock,
                 new_stock,
                 operator_user_id,
-                comment
+                comment or ""
             ))
         conn.commit()
     finally:
