@@ -173,6 +173,29 @@ def change_comment(request_id: int, comment: str) -> None:
     finally:
         conn.close()
 
+def get_request_by_id(request_id: int) -> dict:
+    """
+    requests テーブルから ID 指定で 1 レコード取得。
+    sample_id, quantity, user_id, comment などを返します。
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT id, sample_id, quantity, user_id, comment
+                FROM requests
+                WHERE id = %s
+                """,
+                (request_id,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise ValueError(f"Request ID {request_id} not found")
+            return row
+    finally:
+        conn.close()
+
 
 '''
 {
