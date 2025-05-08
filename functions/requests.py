@@ -1,9 +1,10 @@
 import azure.functions as func
 from services.request_services import post_record, get_all, get_by_user_id, change_request_status, change_comment
 import logging
+from utils.db import get_db_connection
 import json
 from services.history_service import insert_history_from_request
-from services.stock_service import update_sample_stock
+from services.stock_service import update_sample_stock, get_stock
 
 
 
@@ -55,12 +56,10 @@ def get_requests_by_user(req: func.HttpRequest) -> func.HttpResponse:
 def update_request_status(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Processing PUT /requests/{id}/status with stock deduction")
 
-    # 1) route から request_id を取得
     request_id = req.route_params.get("id")
     if not request_id:
         return func.HttpResponse("Missing request id in route", status_code=400)
 
-    # 2) JSON ボディ parse
     try:
         data = req.get_json()
     except ValueError:
@@ -79,29 +78,27 @@ def update_request_status(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse("Invalid numeric value", status_code=400)
 
     try:
-        # 3) ステータス更新
+        # 1) ステータス更新
         change_request_status(request_id=rid, status_no=new_status)
 
-        # 4) 発送済みの場合は在庫を引き落とし
-        #    （status_no == 2 を「発送済み」と仮定）
+        # 2) 発送済み(status_no==2)なら在庫を減算
         if new_status == 2:
-            # 4-a) リクエストから sample_id & quantity を取得
-            req_info = get_request_by_id(rid)
+            req_info  = get_request_by_id(rid)
             sample_id = req_info["sample_id"]
-            quantity  = req_info["quantity"]
+            quantity  = int(req_info["quantity"])
 
-            # 4-b) 在庫を current_stock - quantity に更新
-            #     update_sample_stock は「新在庫」を渡して previous_stock を返す
-            #     ここでは、現在 stock を取得してから差し引く
-            previous_stock = update_sample_stock(sample_id, 0)  # ダミーで前在庫だけ取得
-            # 取得した previous_stock を new_stock 計算に使う
-            new_stock = previous_stock - int(quantity)
-            # 実際の更新
-            update_sample_stock(sample_id, new_stock)
+            # 現在在庫を取得
+            current_stock = get_stock(sample_id)
+            # 差し引いて新在庫を計算
+            new_stock = current_stock - quantity
+            if new_stock < 0:
+                new_stock = 0
 
-            logging.info(f"Deducted stock for sample {sample_id}: {previous_stock}→{new_stock}")
+            # 在庫を更新（prev_stock は無視してOK）
+            prev_stock = update_sample_stock(sample_id, new_stock)
+            logging.info(f"Deduct stock sample={sample_id}: {prev_stock}→{new_stock}")
 
-        # 5) 履歴 INSERT (action_type="shipment")
+        # 3) 履歴INSERT (action_type="shipment")
         try:
             insert_history_from_request(
                 request_id=rid,

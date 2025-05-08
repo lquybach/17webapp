@@ -64,29 +64,42 @@ def post_history(cursor, data):
 
 def update_sample_stock(sample_id: int, new_stock: int) -> int:
     """
-    samples テーブルの sample_stock を new_stock に更新し、
-    変更前の在庫数を戻り値として返します。
+    前在庫を返しつつ、新在庫をセットします。
     """
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            # 1) 変更前の在庫を取得
+            # 前在庫取得
+            cursor.execute(
+                "SELECT sample_stock FROM samples WHERE sample_id = %s",
+                (sample_id,)
+            )
+            prev = cursor.fetchone()["sample_stock"]
+
+            # 在庫更新
+            cursor.execute(
+                "UPDATE samples SET sample_stock = %s, updated_at = CURRENT_TIMESTAMP WHERE sample_id = %s",
+                (new_stock, sample_id)
+            )
+        conn.commit()
+        return prev
+    finally:
+        conn.close()
+
+def get_stock(sample_id: int) -> int:
+    """
+    現在の在庫数を返します。
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
             cursor.execute(
                 "SELECT sample_stock FROM samples WHERE sample_id = %s",
                 (sample_id,)
             )
             row = cursor.fetchone()
-            if not row:
-                raise ValueError(f"Sample ID {sample_id} not found")
-            previous_stock = row["sample_stock"]
-
-            # 2) 在庫を更新
-            cursor.execute(
-                "UPDATE samples SET sample_stock = %s WHERE sample_id = %s",
-                (new_stock, sample_id)
-            )
-        conn.commit()
-        return previous_stock
-
+            if row is None:
+                raise ValueError(f"Sample {sample_id} not found")
+            return row["sample_stock"]
     finally:
         conn.close()
