@@ -9,19 +9,22 @@ def get_all_histories() -> list:
         with conn.cursor() as cursor:
             cursor.execute("""
                 SELECT
-                  history_id,
-                  request_id,
-                  action_type,
-                  sample_id,
-                  sample_name,
-                  sample_stock,
-                  previous_stock,
-                  new_stock,
-                  operator_user_id,
-                  user_id,
-                  comment,
-                  updated_at
-                FROM sample_histories
+                    s.history_id,
+                    s.request_id,
+                    s.action_type,
+                    s.sample_id,
+                    s.sample_name,
+                    s.sample_stock,
+                    s.previous_stock,
+                    s.new_stock,
+                    s.operator_user_id,
+                    s.user_id,
+                    u.user_name,
+                    s.comment,
+                    s.updated_at
+                FROM sample_histories s
+                JOIN users u
+                    ON s.operator_user_id = u.user_id
                 ORDER BY updated_at DESC
             """)
             return cursor.fetchall()
@@ -30,6 +33,7 @@ def get_all_histories() -> list:
 
 
 def insert_history_from_request(
+        
     request_id: int,
     action_type: str,
     operator_user_id: int = None,

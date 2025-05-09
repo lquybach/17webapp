@@ -21,6 +21,8 @@ def get_all():
             sa.address_name,
             r.preferred_date,
             r.comment,
+            r.user_id,
+            u.user_name,
             st.status_name,
             st.status_no,
             r.created_at
@@ -31,6 +33,8 @@ def get_all():
             ON r.shipping_address_code = sa.shipping_address_code
         JOIN statuses st
             ON r.status_no = st.status_no
+        JOIN users u
+            ON r.user_id = u.user_id
         ORDER BY r.created_at DESC
         """)
     rows = cursor.fetchall()
