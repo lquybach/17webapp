@@ -13,6 +13,7 @@ def get_db_connection():
             cursorclass=pymysql.cursors.DictCursor,
             connect_timeout=5,
             ssl={'fake_flag_to_enable_tls': True},
+            init_command="SET time_zone = '+09:00';"
         )
         return conn
     except pymysql.MySQLError as e:
